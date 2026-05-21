@@ -61,21 +61,16 @@ userSchema.methods.comparePassword = async function (candidatePassword){
   return match ; 
 }
 
-userSchema.pre("save" , async function(next){
-  try{
+userSchema.pre("save" , async function(){
+
    const user = this;
   
    if(user.isModified("password")){
      const saltRounds = 10;
      const hashedPassword = await bcrypt.hash(user.password , saltRounds);
      user.password = hashedPassword;
-   }
-  }
-  catch(err){
-    next(err);
-  } 
-
- next();
+   
+    }
 });
 
 const userModel = mongoose.models.userModel || mongoose.model('userModel' , userSchema);
