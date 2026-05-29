@@ -1,5 +1,5 @@
 import userModel from "../Models/userModel.js";
-import transporter from "../config/transoporter.js";
+import transporter from "../config/transporter.js";
 import jwt from 'jsonwebtoken';
 import { promisify } from 'node:util';
 
@@ -29,20 +29,20 @@ const register = async (req , res) => {
 
     //console.log("jwt signed");
 
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      to: email,
-      subject: "Registeration Greetings !!",
-      text: `Welcome to Ali's Authentication System Your account has been created with email id: ${email}`
-    };
-
     res.cookie('token' , token , {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    
+
+     const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: email,
+      subject: "Registeration Greetings !!",
+      text: `Welcome to Ali's Authentication System Your account has been created with email id: ${email}`
+     };
+
     await transporter.sendMail(mailOptions);
     //console.log("email sent")
    
@@ -54,5 +54,28 @@ const register = async (req , res) => {
   }
 };
 
+const continueWithGoogle = async(req , res) => {
+ try{
+   const user = req.user;
+  
+   if(!user){
+     return res.json({success : false , message : "User Not Found"});
+   }
 
-export default register;
+   const token = jwt.sign({id : user._id}, process.env.JWT_SECRET , {expiresIn : '7d'});
+   
+   res.cookie('token' , token ,{
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    
+    res.json({success : true});
+  }
+  catch(err){
+   res.json({success : false , message : err});
+  }
+
+}
+export {register , continueWithGoogle};
