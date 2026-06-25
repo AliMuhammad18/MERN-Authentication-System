@@ -30,25 +30,6 @@ import bcrypt from "bcryptjs";
     default: false
   },
 
-  otp: {
-    codeHash : String,
-
-    expiresAt: {
-      type : Date,
-      index : true
-    },
-
-    attempts: {
-      type: Number,
-      default: 5
-    },
-
-    use: {
-      type: String,
-      enum: ["register", "reset", "mfa"]
-    }
-  },
-
   createdAt: {
     type: Date,
     default: Date.now,

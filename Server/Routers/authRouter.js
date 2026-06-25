@@ -20,4 +20,4 @@ authRouter.get("/auth/google/callback",
  continueWithGoogle
 );
 
-export default authRouter;
+export default authRouter; 
