@@ -9,38 +9,30 @@ import bcrypt from "bcryptjs";
 
   email: {
     type: String,
-    required: true,
     unique: true,
     lowercase: true,
     trim: true,
   },
 
-  password: {
-    type: String,
-    default: null,
-  },
+  password : String,
 
-  googleId: {
-    type: String,
-    default: null
-  },
+  googleId : String,
 
-  mfaEnabled: {
-    type: Boolean,
-    default: false
-  },
+  mfaEnabled : Boolean,
+  
+  tempMfaSecret : String,
+  
+  mfaSecret : String,
 
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  }
+  backupCodes : [{
+    code : String,
+    used : {type: Boolean , default : false},
+    usedAt : {type: Date , default : null},
+  }],
+  
+  createdAt : {type : Date , default : Date.now}
 
 });
-
-userSchema.methods.comparePassword = async function (candidatePassword){
-  let match = await bcrypt.compare(candidatePassword, this.password);
-  return match ; 
-}
 
 userSchema.pre("save" , async function(){
 
@@ -55,4 +47,5 @@ userSchema.pre("save" , async function(){
 });
 
 const userModel = mongoose.models.userModel || mongoose.model('userModel' , userSchema);
+
 export default userModel;
