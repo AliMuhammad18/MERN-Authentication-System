@@ -18,7 +18,7 @@ import bcrypt from "bcryptjs";
 
   googleId : String,
 
-  mfaEnabled : Boolean,
+  mfaEnabled : {type : Boolean, default : false},
   
   tempMfaSecret : String,
   
