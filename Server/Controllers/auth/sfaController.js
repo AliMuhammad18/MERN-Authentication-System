@@ -96,4 +96,19 @@ catch(err){
 }
 };
 
-export { signup, continueWithGoogle , login};
+const logout = async (req, res) => {
+    try{
+        res.clearCookie("access_token" , {
+          httpOnly : true,
+          secure : process.env.NODE_ENV === "production",
+          sameSite : process.env.NODE_ENV === "production" ? "none" : "strict",  
+        });
+
+        return res.status(200).json({success : true , message : "user logged out successfully"});
+
+    }catch(err){
+        console.error("error from logout controller",err);
+        return res.status(500).json({success : false , message : err.message});
+    }
+}
+export { signup, continueWithGoogle , login , logout};
