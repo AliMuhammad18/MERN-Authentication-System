@@ -1,7 +1,7 @@
 import {createClient} from "redis";
 
 const redisClient = createClient({
-  url: process.env.production == 'true' ? process.env.INTERNAL_REDIS_URL : process.env.EXTERNAL_REDIS_URL ,
+  url: process.env.production ? process.env.INTERNAL_REDIS_URL : process.env.EXTERNAL_REDIS_URL ,
   socket: {
     reconnectStrategy: (retries) => {
       console.log(`Redis reconnecting... Attempt #${retries}`);

@@ -1,5 +1,6 @@
 import express from 'express';
 import {accessTokenVerification , tokenVerification} from '../Middlewares/jwtVerification.js';
+import { rateLimiting } from "../Middlewares/rateLimiting.js";
 import validator from '../Middlewares/validator.js'
 import {signup , continueWithGoogle , login , logout , sendPasswordResetOtp , verifyPasswordResetOtp , resetPassword} from "../Controllers/auth/sfaController.js";
 import {enableMfa , verifyMfa , disableMfa , loginWithBackupCode , verifyBackupCodeToDisableMfa, verifyOtpToDisableMfa } from "../Controllers/auth/mfaController.js";
@@ -8,21 +9,21 @@ import passport from 'passport'
 const authRouter = express.Router();
 
 //SFA routes
-authRouter.post("/signup" , validator , signup);
-authRouter.post("/login" , login);
-authRouter.post("/logout" , accessTokenVerification , logout);
-authRouter.post("/send-password-reset-otp" , sendPasswordResetOtp);
-authRouter.post("/verify-password-reset-otp" , verifyPasswordResetOtp);
-authRouter.post("/reset-password" , resetPassword);
+authRouter.post("/signup" ,  rateLimiting(5, 60 * 10) , validator , signup);
+authRouter.post("/login" , rateLimiting(5, 60 * 10), login);
+authRouter.post("/logout" , rateLimiting(5, 60 * 10), accessTokenVerification , logout);
+authRouter.post("/send-password-reset-otp" , rateLimiting(10, 60 * 10) , sendPasswordResetOtp);
+authRouter.post("/verify-password-reset-otp" , rateLimiting(5, 60 * 10) , verifyPasswordResetOtp);
+authRouter.post("/reset-password" , rateLimiting(10, 60 * 10) , resetPassword);
 
 //google authentication routes
-authRouter.get("/auth/google",
+authRouter.get("/auth/google", rateLimiting(10, 60 * 10),
     passport.authenticate('google', {
         scope : ['profile' , 'email'],
         session : false
 }));
 
-authRouter.get("/auth/google/callback",
+authRouter.get("/auth/google/callback", rateLimiting(10, 60 * 10),
  passport.authenticate('google' , {
     session : false
  }),
@@ -30,11 +31,11 @@ authRouter.get("/auth/google/callback",
 );
 
 //2FA routes
-authRouter.post("/enable-2fa" , accessTokenVerification , enableMfa);
-authRouter.post("/verify-2fa" , tokenVerification , verifyMfa);
-authRouter.post("/login-with-backup-code" , tokenVerification , loginWithBackupCode);
-authRouter.post("/disable-2fa" , accessTokenVerification , disableMfa);
-authRouter.post("/verify-disable-backup-code" , accessTokenVerification , verifyBackupCodeToDisableMfa);
-authRouter.post("/verify-disable-otp" , accessTokenVerification , verifyOtpToDisableMfa);
+authRouter.post("/enable-2fa" , rateLimiting(10, 60 * 10), accessTokenVerification , enableMfa);
+authRouter.post("/verify-2fa" , rateLimiting(5, 60 * 10), tokenVerification , verifyMfa);
+authRouter.post("/login-with-backup-code" , rateLimiting(10, 60 * 10), tokenVerification , loginWithBackupCode);
+authRouter.post("/disable-2fa" , rateLimiting(10, 60 * 10), accessTokenVerification , disableMfa);
+authRouter.post("/verify-disable-backup-code" , rateLimiting(5, 60 * 10), accessTokenVerification , verifyBackupCodeToDisableMfa);
+authRouter.post("/verify-disable-otp" , rateLimiting(10, 60 * 10), accessTokenVerification , verifyOtpToDisableMfa);
 
 export default authRouter; 
