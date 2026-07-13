@@ -1,7 +1,7 @@
 import express from 'express';
 import {accessTokenVerification , tokenVerification} from '../Middlewares/jwtVerification.js';
 import { rateLimiting } from "../Middlewares/rateLimiting.js";
-import validator from '../Middlewares/validator.js'
+import {passwordValidator , emailValidator , nameValidator} from '../Middlewares/validators.js'
 import {signup , continueWithGoogle , login , logout , sendPasswordResetOtp , verifyPasswordResetOtp , resetPassword} from "../Controllers/auth/sfaController.js";
 import {enableMfa , verifyMfa , disableMfa , loginWithBackupCode , verifyBackupCodeToDisableMfa, verifyOtpToDisableMfa } from "../Controllers/auth/mfaController.js";
 import passport from 'passport'
@@ -9,12 +9,12 @@ import passport from 'passport'
 const authRouter = express.Router();
 
 //SFA routes
-authRouter.post("/signup" ,  rateLimiting(5, 60 * 10) , validator , signup);
-authRouter.post("/login" , rateLimiting(5, 60 * 10), login);
+authRouter.post("/signup" ,  rateLimiting(5, 60 * 10) , passwordValidator , emailValidator , nameValidator , signup);
+authRouter.post("/login" , rateLimiting(5, 60 * 10) , emailValidator , passwordValidator , login);
 authRouter.post("/logout" , rateLimiting(5, 60 * 10), accessTokenVerification , logout);
-authRouter.post("/send-password-reset-otp" , rateLimiting(10, 60 * 10) , sendPasswordResetOtp);
+authRouter.post("/send-password-reset-otp" , rateLimiting(10, 60 * 10) , emailValidator , sendPasswordResetOtp);
 authRouter.post("/verify-password-reset-otp" , rateLimiting(5, 60 * 10) , verifyPasswordResetOtp);
-authRouter.post("/reset-password" , rateLimiting(10, 60 * 10) , resetPassword);
+authRouter.post("/reset-password" , rateLimiting(10, 60 * 10) , passwordValidator , resetPassword);
 
 //google authentication routes
 authRouter.get("/auth/google", rateLimiting(10, 60 * 10),

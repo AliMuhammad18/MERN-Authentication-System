@@ -26,8 +26,8 @@ const signup = async (req, res) => {
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
       to: email,
-      subject: "signupation Greetings !!",
-      text: `Welcome to Ali's Authentication System Your account has been created with email id: ${email}`,
+      subject: "Signupation Greetings !!",
+      text: `Welcome to Ali's Authentication System Your account has been created with email: ${email}`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -219,13 +219,14 @@ const resetPassword = async (req , res) => {
   return res.status(400).json({success : false , message : "OTP not verified"});
  }
 
- const {newPassword} = req.body;
+ const {password} = req.body;
+ 
 
- if(!newPassword){
+ if(!password){
   return res.status(400).json({success : false , message : "missing fields"});
  }
 
- user.password = newPassword;
+ user.password = password;
  user.passwordResetOtp.verified = false;
  
  await user.save();
