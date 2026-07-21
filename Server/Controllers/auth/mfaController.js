@@ -3,7 +3,7 @@ import speakeasy from "speakeasy";
 import qrcode from "qrcode";
 import {generateBackupCodes , saveBackupCodes , verifyBackupCode} from "../../utils/backupCodes.js";
 import jwt from "jsonwebtoken";
-import { signAndSendAccessToken } from "../../utils/signAndSendJwt.js";
+import { signAndSendAccessToken } from "../../utils/jwts.js";
 
 const enableMfa = async (req , res) =>{
 
@@ -100,7 +100,7 @@ const verifyMfa = async (req , res) =>{
       res.clearCookie("temp_token" , {
        httpOnly: true,
        secure: process.env.NODE_ENV === "production",
-       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+       sameSite: "strict",
       });
 
       signAndSendAccessToken(user , res);

@@ -3,7 +3,8 @@ import transporter from "../../config/transporter.js";
 import redisClient from "../../config/redisClient.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import {signAndSendAccessToken , signAndSendTempToken} from "../../utils/signAndSendJwt.js";
+import jwt from "jsonwebtoken";
+import {signAndSendAccessToken , signAndSendTempToken , signAndSendRefreshToken , refreshTokenRevocation} from "../../utils/jwts.js";
 
 const signup = async (req, res) => {
   const { name, email, password } = req.body;
@@ -20,9 +21,11 @@ const signup = async (req, res) => {
     }
 
     const user = await userModel.create({ name, email, password });
-
+    
+    const refreshTokenFamilyId = crypto.randomUUID();
     signAndSendAccessToken(user , res);
-
+    await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+    
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
       to: email,
@@ -51,8 +54,10 @@ const continueWithGoogle = async (req, res) => {
       signAndSendTempToken(user, res);
       return res.status(200).json({success : true , message : "2FA is required"});
     }
-
+    
+    const refreshTokenFamilyId = crypto.randomUUID();
     signAndSendAccessToken(user, res);
+    await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
 
     res.status(200).json({ success: true , message : "user logged in successfully"});
   } catch (err) {
@@ -61,8 +66,8 @@ const continueWithGoogle = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
- 
+const login = async (req, res) => { 
+   
 const {email , password} = req.body;
 
  if(!email || !password){
@@ -86,8 +91,11 @@ const {email , password} = req.body;
       signAndSendTempToken(user, res);
       return res.status(200).json({success : true , message : "2FA is required"});
   }
-
+  
+  const refreshTokenFamilyId = crypto.randomUUID();
   signAndSendAccessToken(user , res);
+  await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+
 
  res.status(200).json({ success: true , message : "user logged in successfully"});
 
@@ -99,11 +107,27 @@ catch(err){
 };
 
 const logout = async (req, res) => {
-    try{
+    
+  try{
+       
+        const refreshToken = req.cookies.refresh_token;
+        if(refreshToken){
+          const payload = jwt.decode(refreshToken);
+          if(payload?.familyId){
+            await refreshTokenRevocation(payload.familyId);
+          }
+        }
+
         res.clearCookie("access_token" , {
           httpOnly : true,
           secure : process.env.NODE_ENV === "production",
-          sameSite : process.env.NODE_ENV === "production" ? "none" : "strict",  
+          sameSite : "strict"
+        });
+
+        res.clearCookie("refresh_token" , {
+          httpOnly : true,
+          secure : process.env.NODE_ENV === "production",
+          sameSite : "strict"
         });
 
         return res.status(200).json({success : true , message : "user logged out successfully"});
@@ -153,9 +177,10 @@ const sendPasswordResetOtp = async (req , res) => {
     res.cookie("password_reset_session" , sessionId , {
       httpOnly : true,
       secure : process.env.NODE_ENV === "production",
-      sameSite : process.env.NODE_ENV === "production" ? "none" : "strict",  
+      sameSite : "strict",  
     });
-
+    
+  
     return res.status(200).json({success : true , message : "OTP sent successfully"});
    }
    catch(err){
@@ -237,5 +262,25 @@ const resetPassword = async (req , res) => {
     
 } 
 
-export { signup, continueWithGoogle , login , logout , sendPasswordResetOtp , verifyPasswordResetOtp , resetPassword};
+const refreshAccessToken = async (req , res) => {
+
+   try{
+    const user = await userModel.findById(req.id);
+    if(!user){
+      return res.status(404).json({success : false , message : "user not found"});
+    }
+    
+    // Pass remaining TTL from middleware so the expiry window is preserved across rotations
+    await signAndSendRefreshToken(user , res , req.familyId , req.tokenTTL);
+    signAndSendAccessToken(user , res);
+    await redisClient.unlink(`Refresh:${req.jti}`);   
+
+    return res.status(200).json({success : true , message : "access token refreshed successfully"});
+   }
+   catch(err){
+    console.error("error from refreshAccessToken controller" , err);
+    return res.status(500).json({success : false , message : err.message});
+   }
+}
+export { signup, continueWithGoogle , login , logout , refreshAccessToken , sendPasswordResetOtp , verifyPasswordResetOtp , resetPassword};
 
