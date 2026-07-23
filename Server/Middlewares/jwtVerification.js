@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import redisClient from '../config/redisClient.js';
 import {refreshTokenRevocation} from "../utils/jwts.js";
+import logger from '../config/logger.js';
 
 const tokenVerification = async (req , res , next) => {
      
@@ -91,7 +92,7 @@ const refreshTokenVerification = async (req , res , next) => {
       // or is being replayed by an attacker. Revoke the entire family.
       if(!tokenData){
         await refreshTokenRevocation(payload.familyId);
-        console.log("referesh token has been revoked");
+        logger.security(`Refresh token reuse detected — family ${payload.familyId} revoked`);
         return res.status(403).json({success : false , message : "Forbidden: Invalid refresh token"});
       }
 

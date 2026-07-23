@@ -6,6 +6,8 @@ import connectDB from './config/mongodb.js';
 import passport from 'passport';
 import './config/PassportStrategies/googleStrategy.js';
 import authRouter from './Routers/authRouter.js';
+import errorHandler from './Middlewares/errorHandler.js';
+import logger from './config/logger.js';
  
 
 const app = express();
@@ -23,4 +25,7 @@ await connectDB();
 
 app.use('/api/auth' , authRouter);
 
-app.listen(port , ()=> console.log(`Server running on port : ${port}`));
+// Centralized error handler — must be the last middleware
+app.use(errorHandler);
+
+app.listen(port , ()=> logger.info(`Server running on port : ${port}`));
