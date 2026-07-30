@@ -15,12 +15,6 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     throw new AppError("missing fields", 400);
   }
 
-  const userExists = await userModel.exists({ email });
-
-  if (userExists) {
-    throw new AppError("User already exists", 409);
-  }
-
   const otp = crypto.randomInt(100000 , 1000000).toString();
 
   const mailOptions = {
@@ -152,14 +146,8 @@ const login = asyncHandler(async (req, res) => {
 
   const user = await userModel.findOne({email});
   
-  if(!user){
-    throw new AppError("user doesn't exists", 404);
-  }
-
-  const passwordCheck = await bcrypt.compare(password , user.password);
-
-  if(!passwordCheck){
-    throw new AppError("Invalid Password", 400);
+  if(!user || !await bcrypt.compare(password , user.password)){
+    throw new AppError("Invalid Email or Password", 400);
   }
 
   if(user.mfaEnabled){
