@@ -44,8 +44,7 @@ userSchema.pre("save" , async function(){
    const user = this;
   
    if(user.isModified("password")){
-     const saltRounds = 10;
-     const hashedPassword = await bcrypt.hash(user.password , saltRounds);
+     const hashedPassword = await bcrypt.hash(user.password , +process.env.SALT_ROUNDS);
      user.password = hashedPassword;
     }
    
@@ -55,8 +54,7 @@ userSchema.pre("save" , async function(){
         return;
       }
 
-      const saltRounds = 10;
-      const hashedOtp = await bcrypt.hash(user.passwordResetOtp.value , saltRounds);
+      const hashedOtp = await bcrypt.hash(user.passwordResetOtp.value , +process.env.SALT_ROUNDS);
       user.passwordResetOtp.value = hashedOtp;
     }
 

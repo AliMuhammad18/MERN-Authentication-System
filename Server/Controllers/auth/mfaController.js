@@ -1,8 +1,9 @@
 import userModel from "../../Models/userModel.js";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
+import crypto from "crypto";
 import {generateBackupCodes , saveBackupCodes , verifyBackupCode} from "../../utils/backupCodes.js";
-import { signAndSendAccessToken } from "../../utils/jwts.js";
+import { signAndSendAccessToken , signAndSendRefreshToken } from "../../utils/jwts.js";
 import AppError from "../../utils/AppError.js";
 import asyncHandler from "../../utils/asyncHandler.js";
 
@@ -29,7 +30,7 @@ const enableMfa = asyncHandler(async (req , res) => {
   const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
 
   return res.status(200).json({
-    message : "Scan the QR code to enable MFA",
+    message : "Scan the QR code With Your Authenticator App to enable 2FA",
     success : true,
     qrCodeDataUrl
   });
@@ -73,9 +74,9 @@ const verifyMfa = asyncHandler(async (req , res) => {
     signAndSendAccessToken(user , res);
 
     return res.status(200).json({backupcodes :  codes , success : true , message : "MFA Enabled successfully"});
-  }
+   }
 
-  else if(user.mfaSecret){
+   else if(user.mfaSecret){
 
     const checkOtp = speakeasy.totp.verify({
       secret : user.mfaSecret,
@@ -94,27 +95,14 @@ const verifyMfa = asyncHandler(async (req , res) => {
       sameSite: "strict",
     });
 
+    const refreshTokenFamilyId = crypto.randomUUID();
     signAndSendAccessToken(user , res);
+    await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
 
     return res.status(200).json({success : true , message : "MFA Verified successfully"});
   } 
 });
 
-
-const disableMfa = asyncHandler(async (req , res) => {
-  
-  const user = await userModel.findById(req.id);
-
-  if(!user){
-    throw new AppError("user not found", 404);
-  }
-
-  if(!user.mfaEnabled){
-    throw new AppError("2FA is already disabled", 400);
-  }
-
-  return res.status(200).json({success : true , message : "Enter the 6 digit OTP from your authenticator app to disable 2FA"});
-});
 
 const verifyOtpToDisableMfa = asyncHandler(async (req , res) => {
     
@@ -192,9 +180,11 @@ const loginWithBackupCode = asyncHandler(async (req , res) => {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
   });      
 
+  const refreshTokenFamilyId = crypto.randomUUID();
   signAndSendAccessToken(user , res);
+  await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
     
   return res.status(200).json({success : true , message : "User logged in successfully"});
 });
 
-export {enableMfa , verifyMfa , loginWithBackupCode , disableMfa , verifyBackupCodeToDisableMfa , verifyOtpToDisableMfa};
+export {enableMfa , verifyMfa , loginWithBackupCode , verifyBackupCodeToDisableMfa , verifyOtpToDisableMfa};

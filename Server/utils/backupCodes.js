@@ -15,7 +15,7 @@ const generateBackupCodes = () => {
 
 const saveBackupCodes = async (user , codes) => {
   for(let code of codes){
-    const hash = await bcrypt.hash(code , 10);
+    const hash = await bcrypt.hash(code , + process.env.SALT_ROUNDS);
     user.backupCodes.push({
         code : hash,
         used : false,

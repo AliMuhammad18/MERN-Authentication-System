@@ -4,7 +4,9 @@ import {refreshTokenRevocation} from "../utils/jwts.js";
 import logger from '../config/logger.js';
 
 const tokenVerification = async (req , res , next) => {
-     
+
+try{
+  
 const tempToken = req.cookies.temp_token;
 const accessToken = req.cookies.access_token;
 
@@ -31,6 +33,11 @@ else {
 
      
 }   
+catch(err){
+   logger.error("error from tokenVerification middleware" , err)
+   return res.status(500).json({success : false , message : err.message});
+}
+}
 
 const accessTokenVerification = async (req , res , next) => {
      
@@ -51,15 +58,17 @@ try{
    });
 }
 catch(err){
-   console.error("error from accessTokenVerification middleware" , err)
+   logger.error("error from accessTokenVerification middleware" , err)
    return res.status(500).json({success : false , message : err.message});
 }    
 }
 
 const refreshTokenVerification = async (req , res , next) => {
   
+ try{ 
+
   const refreshToken = req.cookies.refresh_token;
-  
+
   if(!refreshToken){
     return res.status(403).json({success : false , message : "Forbidden: Refresh token not found"});
   }
@@ -107,7 +116,11 @@ const refreshTokenVerification = async (req , res , next) => {
       next();
     }
   });
-
+}
+catch(err){
+   logger.error("error from refreshTokenVerification middleware" , err)
+   return res.status(500).json({success : false , message : err.message});
+}
 }
 
 export {tokenVerification , accessTokenVerification , refreshTokenVerification};

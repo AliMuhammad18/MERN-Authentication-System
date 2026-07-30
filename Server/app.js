@@ -18,14 +18,16 @@ app.use(passport.initialize());
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({credentials : true}));
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 
 await connectDB();
 
 
 app.use('/api/auth' , authRouter);
 
-// Centralized error handler — must be the last middleware
 app.use(errorHandler);
 
 app.listen(port , ()=> logger.info(`Server running on port : ${port}`));
