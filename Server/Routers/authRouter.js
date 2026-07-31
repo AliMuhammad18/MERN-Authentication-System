@@ -1,9 +1,9 @@
 import express from 'express';
-import {accessTokenVerification , tokenVerification , refreshTokenVerification} from '../Middlewares/jwtVerification.js';
+import {accessTokenVerification , tempTokenVerification , refreshTokenVerification} from '../Middlewares/jwtVerification.js';
 import { rateLimitingByIp , rateLimitingByEmail } from "../Middlewares/rateLimiting.js";
 import {passwordValidator , emailValidator , nameValidator} from '../Middlewares/validators.js'
 import {sendSignupOtp , verifySignupOtp , finishSignup, continueWithGoogle , login , logout , refreshAccessToken , sendPasswordResetOtp , verifyPasswordResetOtp , resetPassword, getMe} from "../Controllers/auth/sfaController.js";
-import {enableMfa , verifyMfa , loginWithBackupCode , verifyBackupCodeToDisableMfa, verifyOtpToDisableMfa } from "../Controllers/auth/mfaController.js";
+import {enableMfa , verifyMfaEnable , completeMfaLogin , loginWithBackupCode , verifyBackupCodeToDisableMfa, verifyOtpToDisableMfa } from "../Controllers/auth/mfaController.js";
 import passport from 'passport'
 
 const authRouter = express.Router();
@@ -36,8 +36,9 @@ authRouter.get("/auth/google/callback", rateLimitingByIp(10, 60 * 10), //limit b
 
 //2FA routes
 authRouter.post("/enable-2fa" , rateLimitingByIp(10, 60 * 10), accessTokenVerification , enableMfa);
-authRouter.post("/verify-2fa" , rateLimitingByIp(10, 60 * 10), tokenVerification , verifyMfa);
-authRouter.post("/login-with-backup-code" , rateLimitingByIp(10, 60 * 10), tokenVerification , loginWithBackupCode);
+authRouter.post("/verify-2fa" , rateLimitingByIp(10, 60 * 10), accessTokenVerification , verifyMfaEnable);       // enable flow: logged-in user
+authRouter.post("/complete-2fa-login" , rateLimitingByIp(10, 60 * 10), tempTokenVerification , completeMfaLogin); // login flow:  temp-token user
+authRouter.post("/login-with-backup-code" , rateLimitingByIp(10, 60 * 10), tempTokenVerification , loginWithBackupCode); // login flow: temp-token user
 authRouter.post("/verify-disable-backup-code" , rateLimitingByIp(10, 60 * 10), accessTokenVerification , verifyBackupCodeToDisableMfa);
 authRouter.post("/verify-disable-otp" , rateLimitingByIp(10, 60 * 10), accessTokenVerification , verifyOtpToDisableMfa);
 

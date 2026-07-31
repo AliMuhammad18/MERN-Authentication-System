@@ -37,71 +37,83 @@ const enableMfa = asyncHandler(async (req , res) => {
 
 });
 
-const verifyMfa = asyncHandler(async (req , res) => {
+const verifyMfaEnable = asyncHandler(async (req , res) => {
    
   const user = await userModel.findById(req.id);
 
   if(!user){
     throw new AppError("user not found", 404);
   }
+
+  if(!user.tempMfaSecret){
+    throw new AppError("No pending 2FA setup found. Call /enable-2fa first.", 400);
+  }
+
+  const checkOtp = speakeasy.totp.verify({
+    secret : user.tempMfaSecret,
+    encoding : "base32",
+    token : req.body.otp,
+    window : 1
+  });
     
-  if(user.tempMfaSecret){
-    const checkOtp = speakeasy.totp.verify({
-      secret : user.tempMfaSecret,
-      encoding : "base32",
-      token : req.body.otp,
-      window : 1
-    });
-      
-    if(!checkOtp){
-      throw new AppError("Invalid OTP", 400);
-    }
-      
-    user.mfaSecret = user.tempMfaSecret;
-    user.mfaEnabled = true;
-    user.tempMfaSecret = null;
+  if(!checkOtp){
+    throw new AppError("Invalid OTP", 400);
+  }
+    
+  user.mfaSecret = user.tempMfaSecret;
+  user.mfaEnabled = true;
+  user.tempMfaSecret = null;
 
-    let codes = generateBackupCodes();
-    await saveBackupCodes(user , codes);
-    await user.save();
-      
-    res.clearCookie("access_token" , {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    });  
-      
-    signAndSendAccessToken(user , res);
+  let codes = generateBackupCodes();
+  await saveBackupCodes(user , codes);
+    
+  res.clearCookie("access_token" , {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });  
+    
+  signAndSendAccessToken(user , res);
 
-    return res.status(200).json({backupcodes :  codes , success : true , message : "MFA Enabled successfully"});
-   }
-
-   else if(user.mfaSecret){
-
-    const checkOtp = speakeasy.totp.verify({
-      secret : user.mfaSecret,
-      encoding : "base32",
-      token : req.body.otp,
-      window : 1
-    });
-      
-    if(!checkOtp){
-      throw new AppError("Invalid OTP", 400);
-    }
-     
-    res.clearCookie("temp_token" , {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
-    const refreshTokenFamilyId = crypto.randomUUID();
-    signAndSendAccessToken(user , res);
-    await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
-
-    return res.status(200).json({success : true , message : "MFA Verified successfully"});
-  } 
+  return res.status(200).json({backupcodes : codes , success : true , message : "MFA Enabled successfully"});
 });
+
+const completeMfaLogin = asyncHandler(async (req , res) => {
+
+  const user = await userModel.findById(req.id);
+
+  if(!user){
+    throw new AppError("user not found", 404);
+  }
+
+  if(!user.mfaEnabled || !user.mfaSecret){
+    throw new AppError("2FA is not enabled on this account", 400);
+  }
+
+  const checkOtp = speakeasy.totp.verify({
+    secret : user.mfaSecret,
+    encoding : "base32",
+    token : req.body.otp,
+    window : 1
+  });
+    
+  if(!checkOtp){
+    throw new AppError("Invalid OTP", 400);
+  }
+   
+  res.clearCookie("temp_token" , {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  const refreshTokenFamilyId = crypto.randomUUID();
+  signAndSendAccessToken(user , res);
+  await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+
+  return res.status(200).json({success : true , message : "Login completed successfully"});
+});
+
 
 
 const verifyOtpToDisableMfa = asyncHandler(async (req , res) => {
@@ -177,7 +189,7 @@ const loginWithBackupCode = asyncHandler(async (req , res) => {
   res.clearCookie('temp_token' , {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    sameSite: 'strict'
   });      
 
   const refreshTokenFamilyId = crypto.randomUUID();
@@ -187,4 +199,4 @@ const loginWithBackupCode = asyncHandler(async (req , res) => {
   return res.status(200).json({success : true , message : "User logged in successfully"});
 });
 
-export {enableMfa , verifyMfa , loginWithBackupCode , verifyBackupCodeToDisableMfa , verifyOtpToDisableMfa};
+export {enableMfa , verifyMfaEnable , completeMfaLogin , loginWithBackupCode , verifyBackupCodeToDisableMfa , verifyOtpToDisableMfa};

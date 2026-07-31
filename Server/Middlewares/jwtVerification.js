@@ -3,38 +3,26 @@ import redisClient from '../config/redisClient.js';
 import {refreshTokenRevocation} from "../utils/jwts.js";
 import logger from '../config/logger.js';
 
-const tokenVerification = async (req , res , next) => {
+const tempTokenVerification = async (req , res , next) => {
 
 try{
-  
-const tempToken = req.cookies.temp_token;
-const accessToken = req.cookies.access_token;
 
-if(accessToken) {
-  jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, payload) => {
-    if(err)
-       return res.status(401).json({ success: false, message: "Token verification failed" });
-    req.id = payload.id;
-    next();
-  });
-} 
+  const tempToken = req.cookies.temp_token;
 
-else if(tempToken){
+  if(!tempToken){
+    return res.status(401).json({ success: false, message: "Access denied: temp token not found" });
+  }
+
   jwt.verify(tempToken, process.env.TEMP_TOKEN_SECRET, (err, payload) => {
-    if(err) 
+    if(err)
       return res.status(401).json({ success: false, message: "Token verification failed" });
     req.id = payload.id;
     next();
   });
-} 
-else {
-  return res.status(401).json({ success: false, message: "Access denied token not found" });
-}
 
-     
 }   
 catch(err){
-   logger.error("error from tokenVerification middleware" , err)
+   logger.error("error from tempTokenVerification middleware" , err)
    return res.status(500).json({success : false , message : err.message});
 }
 }
@@ -123,4 +111,4 @@ catch(err){
 }
 }
 
-export {tokenVerification , accessTokenVerification , refreshTokenVerification};
+export {tempTokenVerification , accessTokenVerification , refreshTokenVerification};
