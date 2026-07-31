@@ -48,16 +48,6 @@ userSchema.pre("save" , async function(){
      user.password = hashedPassword;
     }
    
-    if(user.isModified("passwordResetOtp.value")){
-
-      if(!user.passwordResetOtp.value){
-        return;
-      }
-
-      const hashedOtp = await bcrypt.hash(user.passwordResetOtp.value , +process.env.SALT_ROUNDS);
-      user.passwordResetOtp.value = hashedOtp;
-    }
-
 });
 
 const userModel = mongoose.models.userModel || mongoose.model('userModel' , userSchema);

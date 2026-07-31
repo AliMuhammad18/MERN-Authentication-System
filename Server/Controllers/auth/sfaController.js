@@ -195,12 +195,21 @@ const sendPasswordResetOtp = asyncHandler(async (req , res) => {
   }
 
   const user = await userModel.findOne({email});
-   
-  if(!user){
-    throw new AppError("user doesn't exists", 404);
-  }
-
   const otp = crypto.randomInt(100000 , 1000000).toString();
+  const sessionId = crypto.randomBytes(32).toString("hex");
+  const otpHash = await bcrypt.hash(otp , +process.env.SALT_ROUNDS);
+  
+  const storedOtp = {value : otpHash , verified : false};
+  
+
+  await redisClient.setEx(`Password Reset:${sessionId}` ,  60 * 10 , JSON.stringify({userId : user?._id , otp : storedOtp}));
+
+  res.cookie("password_reset_session" , sessionId , {
+    httpOnly : true,
+    secure : process.env.NODE_ENV === "production",
+    sameSite : "strict",
+    maxAge : 60 * 10 * 1000,  
+  });
 
   const mailOptions = {
     from : process.env.SENDER_EMAIL,
@@ -210,22 +219,6 @@ const sendPasswordResetOtp = asyncHandler(async (req , res) => {
   };
 
   await transporter.sendMail(mailOptions);
-    
-  user.passwordResetOtp.value = otp;
-  user.passwordResetOtp.verified = false;
-
-  await user.save();
-        
-  const sessionId = crypto.randomBytes(32).toString("hex");
-    
-  await redisClient.setEx(`Password Reset:${sessionId}` ,  60 * 10 , `${user._id}`);
-
-  res.cookie("password_reset_session" , sessionId , {
-    httpOnly : true,
-    secure : process.env.NODE_ENV === "production",
-    sameSite : "strict",
-    maxAge : 60 * 10 * 1000,  
-  });
 
   return res.status(200).json({success : true , message : "OTP sent successfully"});
 });
@@ -245,16 +238,20 @@ const verifyPasswordResetOtp = asyncHandler(async (req , res) => {
     throw new AppError("session not found", 404);
   }
 
-  const user = await userModel.findById(cachedSession);
+  const sessionRawData = await redisClient.get(`Password Reset:${sessionId}`);
+  const sessionData = JSON.parse(sessionRawData);
 
-  if(!await bcrypt.compare(otp , user.passwordResetOtp.value)){
+  if(!await bcrypt.compare(otp , sessionData.otp.value)){
     throw new AppError("invalid OTP", 401);
   }
- 
-  user.passwordResetOtp.value = null;
-  user.passwordResetOtp.verified = true;
-  await user.save();
-    
+  
+  if(!sessionData.userId){
+    throw new AppError("user doesn't exist. Create new account", 404);
+  }
+  
+  sessionData.otp.verified = true;
+  await redisClient.set(`Password Reset:${sessionId}` , JSON.stringify(sessionData) , {KEEPTTL : true});
+
   return res.status(200).json({success : true , message : "OTP verified successfully"});
 });
 
@@ -272,12 +269,15 @@ const resetPassword = asyncHandler(async (req , res) => {
     throw new AppError("session expired", 404);
   }
 
-  const user = await userModel.findById(cachedSession);
+  const sessionRawData = await redisClient.get(`Password Reset:${sessionId}`);
+  const sessionData = JSON.parse(sessionRawData);
  
-  if(!user.passwordResetOtp.verified){
+  if(!sessionData.otp.verified){
     throw new AppError("OTP not verified", 400);
   }
-
+  
+  const user = await userModel.findById(sessionData.userId);
+  
   const {password} = req.body;
 
   if(!password){
@@ -285,11 +285,16 @@ const resetPassword = asyncHandler(async (req , res) => {
   }
 
   user.password = password;
-  user.passwordResetOtp.verified = false;
-  
   await user.save();
 
-  await redisClient.del(`Password Reset:${sessionId}`);
+  await redisClient.unlink(`Password Reset:${sessionId}`);
+  
+  res.clearCookie("password_reset_session" , {
+    httpOnly : true,
+    secure : process.env.NODE_ENV === "production",
+    sameSite : "strict",
+    maxAge : 60 * 10 * 1000,
+  });
 
   return res.status(200).json({success : true , message : "password reset successfully"});
 });

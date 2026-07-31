@@ -8,12 +8,13 @@ import './config/PassportStrategies/googleStrategy.js';
 import authRouter from './Routers/authRouter.js';
 import errorHandler from './Middlewares/errorHandler.js';
 import logger from './config/logger.js';
+import helmet from 'helmet';
  
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-
+app.use(helmet());
 app.use(passport.initialize());
 
 app.use(express.json());
