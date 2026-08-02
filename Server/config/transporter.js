@@ -1,16 +1,14 @@
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 import logger from './logger.js';
-import dns from "node:dns";
 
-dns.setDefaultResultOrder("ipv4first");
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, 
+  host: "smtp.resend.com",
+  port: 465,
+  secure: true, 
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: "resend",
+    pass: process.env.RESEND_SMTP_API_KEY,
   },
 });
 
