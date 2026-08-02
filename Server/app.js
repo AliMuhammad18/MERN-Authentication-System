@@ -9,7 +9,9 @@ import authRouter from './Routers/authRouter.js';
 import errorHandler from './Middlewares/errorHandler.js';
 import logger from './config/logger.js';
 import helmet from 'helmet';
- 
+ import dns from "node:dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -20,7 +22,7 @@ app.use(passport.initialize());
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.CLIENT_URL,
   credentials: true,
 }));
 
@@ -28,6 +30,10 @@ await connectDB();
 
 
 app.use('/api/auth' , authRouter);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({message: "OK!"});
+});
 
 app.use(errorHandler);
 
