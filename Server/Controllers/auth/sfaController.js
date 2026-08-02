@@ -1,10 +1,10 @@
 import userModel from "../../Models/userModel.js";
-import transporter from "../../config/transporter.js";
 import redisClient from "../../config/redisClient.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import {signAndSendAccessToken , signAndSendTempToken , signAndSendRefreshToken , refreshTokenRevocation} from "../../utils/jwts.js";
+import {sendSignupOtpEmail , sendLoginNotificationEmail , sendPasswordResetOtpEmail} from "../../utils/emailService.js";
 import AppError from "../../utils/AppError.js";
 import asyncHandler from "../../utils/asyncHandler.js";
 
@@ -16,15 +16,6 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
   }
 
   const otp = crypto.randomInt(100000 , 1000000).toString();
-
-  const mailOptions = {
-    from : process.env.SENDER_EMAIL,
-    to : email,
-    subject : "Verify Your Email to Sign up",
-    text : `Your one-time password (OTP) to sign up is : ${otp}`,
-  };
-
-  await transporter.sendMail(mailOptions);
             
   const sessionId = crypto.randomBytes(32).toString("hex");
   
@@ -40,7 +31,10 @@ const sendSignupOtp = asyncHandler(async (req, res) => {
     maxAge : 60 * 10 * 1000,
   });
 
+  await sendSignupOtpEmail(email , otp);
+
   return res.status(200).json({success : true , message : "OTP sent successfully"});
+
 
 });
 
@@ -156,10 +150,12 @@ const login = asyncHandler(async (req, res) => {
   }
   
   const refreshTokenFamilyId = crypto.randomUUID();
+  
   signAndSendAccessToken(user , res);
   await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+  await sendLoginNotificationEmail(email , user.name);
 
-  res.status(200).json({ success: true , message : "user logged in successfully"});
+  return res.status(200).json({ success: true , message : "user logged in successfully"});
 });
 
 const logout = asyncHandler(async (req, res) => {
@@ -210,15 +206,8 @@ const sendPasswordResetOtp = asyncHandler(async (req , res) => {
     sameSite : "strict",
     maxAge : 60 * 10 * 1000,  
   });
-
-  const mailOptions = {
-    from : process.env.SENDER_EMAIL,
-    to : email,
-    subject : "Password Reset",
-    text : `Your password reset OTP is : ${otp}`,
-  };
-
-  await transporter.sendMail(mailOptions);
+  
+  await sendPasswordResetOtpEmail(email , otp);
 
   return res.status(200).json({success : true , message : "OTP sent successfully"});
 });

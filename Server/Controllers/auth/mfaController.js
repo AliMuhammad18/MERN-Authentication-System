@@ -110,6 +110,7 @@ const completeMfaLogin = asyncHandler(async (req , res) => {
   const refreshTokenFamilyId = crypto.randomUUID();
   signAndSendAccessToken(user , res);
   await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+  await sendLoginNotificationEmail(user.email , user.name);
 
   return res.status(200).json({success : true , message : "Login completed successfully"});
 });

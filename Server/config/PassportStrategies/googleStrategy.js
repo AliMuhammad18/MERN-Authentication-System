@@ -2,7 +2,7 @@ import passport from "passport";
 import 'dotenv/config';
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import userModel from "../../Models/userModel.js";
-import transporter from "../transporter.js";
+import {sendContinueWithGoogleEmail} from "../../utils/emailService.js";
 
 passport.use(
  
@@ -37,14 +37,7 @@ passport.use(
 
        }
 
-       const mailOptions = {
-         from: process.env.SENDER_EMAIL,
-         to: primaryEmail,
-         subject: "Continued with your Google account",
-         text: `Welcome to Ali's Authentication System Your account has been created with email id: ${profile.emails[0].value}`
-       };
-
-      transporter.sendMail(mailOptions); 
+        await sendContinueWithGoogleEmail(primaryEmail , profile.displayName);
 
       done(null , user);  
     }
