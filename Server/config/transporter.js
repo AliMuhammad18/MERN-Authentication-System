@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 import logger from './logger.js';
+import dns from "node:dns";
 
+dns.setDefaultResultOrder("ipv4first");
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
