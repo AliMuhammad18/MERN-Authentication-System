@@ -9,7 +9,7 @@ import authRouter from './Routers/authRouter.js';
 import errorHandler from './Middlewares/errorHandler.js';
 import logger from './config/logger.js';
 import helmet from 'helmet';
- import dns from "node:dns";
+import dns from "node:dns";
 
 dns.setDefaultResultOrder("ipv4first");
 
