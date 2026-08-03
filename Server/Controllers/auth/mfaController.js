@@ -4,6 +4,7 @@ import qrcode from "qrcode";
 import crypto from "crypto";
 import {generateBackupCodes , saveBackupCodes , verifyBackupCode} from "../../utils/backupCodes.js";
 import { signAndSendAccessToken , signAndSendRefreshToken } from "../../utils/jwts.js";
+import {sendLoginNotificationEmail} from "../../utils/emailService.js";
 import AppError from "../../utils/AppError.js";
 import asyncHandler from "../../utils/asyncHandler.js";
 
@@ -196,6 +197,7 @@ const loginWithBackupCode = asyncHandler(async (req , res) => {
   const refreshTokenFamilyId = crypto.randomUUID();
   signAndSendAccessToken(user , res);
   await signAndSendRefreshToken(user , res , refreshTokenFamilyId , 60 * 60 * 24);
+  await sendLoginNotificationEmail(user.email , user.name);
     
   return res.status(200).json({success : true , message : "User logged in successfully"});
 });
