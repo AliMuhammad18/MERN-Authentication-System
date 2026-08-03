@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
@@ -12,6 +14,9 @@ import helmet from 'helmet';
 
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, '..', 'Client', 'dist')));
 const port = process.env.PORT || 4000;
 
 app.use(helmet());
@@ -19,10 +24,6 @@ app.use(passport.initialize());
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : 'http://localhost:5173',
-  credentials: true,
-}));
 
 await connectDB();
 
@@ -33,7 +34,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({message: "OK!"});
 });
 
-app.listen(port , ()=> logger.info(`Server running on port : ${port}`));
+app.get('{*splat}', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'Client', 'dist', 'index.html'));
+});
+
+app.listen(port , () => logger.info(`Server running on port : ${port}`));
 
 app.use(errorHandler);
 

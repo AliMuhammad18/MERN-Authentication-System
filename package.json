@@ -24,6 +24,7 @@
   },
   "scripts": {
     "start": "node Server/app.js",
-    "dev": "nodemon --watch Server --ext js,mjs,cjs,json --exec \"node -r dotenv/config Server/app.js\""
+    "dev": "nodemon --watch Server --ext js,mjs,cjs,json --exec \"node -r dotenv/config Server/app.js\"",
+    "build-client": "npm run build --prefix Client"
   }
 }
