@@ -22,9 +22,11 @@
     "resend": "^6.18.1",
     "speakeasy": "^2.0.0"
   },
+  
   "scripts": {
     "start": "node Server/app.js",
     "dev": "nodemon --watch Server --ext js,mjs,cjs,json --exec \"node -r dotenv/config Server/app.js\"",
-    "build-client": "npm run build --prefix Client"
+    "build": "npm install --prefix Client && npm run build --prefix Client"
   }
+
 }
