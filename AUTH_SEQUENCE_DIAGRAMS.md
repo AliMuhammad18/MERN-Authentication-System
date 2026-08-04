@@ -342,7 +342,7 @@ sequenceDiagram
                 S-->>C: 400 missing fields
             else
                 S->>DB: findById(userId)
-                S->>DB: user.password = newPassword; save()
+                S->>DB: user.password = newPassword save()
                 S->>R: unlink PasswordReset:{sessionId}
                 S-->>C: clear password_reset_session cookie
                 S-->>C: 200 password reset successfully
