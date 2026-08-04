@@ -31,7 +31,8 @@ passport.use(
           else{
             user = await userModel.create({
               name : profile.displayName,
-              googleId : profile.id               
+              googleId : profile.id,
+              email : primaryEmail,               
              });
           }
 
