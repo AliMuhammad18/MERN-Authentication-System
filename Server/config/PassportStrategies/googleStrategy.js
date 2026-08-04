@@ -35,7 +35,6 @@ passport.use(
               email : primaryEmail,               
              });
           }
-
        }
 
         await sendContinueWithGoogleEmail(primaryEmail , profile.displayName);
