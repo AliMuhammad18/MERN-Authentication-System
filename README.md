@@ -25,14 +25,13 @@ The application is deployed as a **single web application** where **Express.js s
 
 ## Two-Factor Authentication (2FA)
 
-The application includes an optional email-based second authentication factor.
+The application includes an optional authenticator app based second authentication factor.
 
 ### Features
 
-* Email OTP verification
 * Temporary authentication token during verification
 * OTP expiration
-* OTP retry protection
+* TOTP Provided by auth apps 
 * One-time-use verification codes
 * Secure verification flow before issuing authentication tokens
 
@@ -44,7 +43,7 @@ When enabling 2FA, users receive a set of recovery codes that can be used if acc
 * Hashed before storage
 * Single-use recovery codes
 * Remaining recovery codes are preserved after each use
-* Recovery code regeneration support
+
 
 ---
 
@@ -105,7 +104,6 @@ Email functionality includes:
 * Account verification
 * Login OTP delivery
 * Password reset
-* Two-Factor Authentication codes
 * Recovery notifications
 
 ---
@@ -148,7 +146,6 @@ The application follows modern authentication security practices.
 ### API Security
 
 * Helmet security headers
-* CORS configuration
 * Request validation
 * Centralized error handling
 * Environment variable configuration
