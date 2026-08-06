@@ -189,7 +189,7 @@ const sendPasswordResetOtp = asyncHandler(async (req , res) => {
   if(!email){
     throw new AppError("missing fields", 400);
   }
-
+  
   const user = await userModel.findOne({email});
   const otp = crypto.randomInt(100000 , 1000000).toString();
   const sessionId = crypto.randomBytes(32).toString("hex");
@@ -197,8 +197,9 @@ const sendPasswordResetOtp = asyncHandler(async (req , res) => {
   
   const storedOtp = {value : otpHash , verified : false};
   
+  const value = {userId : user?.id , otp : storedOtp};
 
-  await redisClient.setEx(`Password Reset:${sessionId}` ,  60 * 10 , JSON.stringify({userId : user?._id , otp : storedOtp}));
+  await redisClient.setEx(`Password Reset:${sessionId}` ,  60 * 10 , JSON.stringify(value));
 
   res.cookie("password_reset_session" , sessionId , {
     httpOnly : true,

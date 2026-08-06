@@ -24,7 +24,7 @@ const passwordValidator = [
 ];
 
 const emailValidator = [
-  body('email').isEmail().withMessage('Invalid email format').normalizeEmail(),
+  body('email').isEmail().withMessage('Invalid email format').normalizeEmail({ gmail_remove_dots: false }),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
